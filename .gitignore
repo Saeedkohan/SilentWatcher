@@ -1,0 +1,17 @@
+
+/*
+
+
+!/.gitignore
+!/*.uproject
+!/Config/
+!/Source/
+
+
+/Binaries/
+/Intermediate/
+/DerivedDataCache/
+/Saved/
+/Build/
+.vs/
+*.sln
