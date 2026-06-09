@@ -53,36 +53,40 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
 	UInputAction* InteractAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
+	UInputAction* ReloadAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="FlashLight")
+	float MaxBatteryLife = 100.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="FlashLight")
+	float CurrentBatteryLife;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="FlashLight")
+	float BatteryDrainRate = 30.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="FlashLight")
+	bool bIsFlashlightOn = false;
 
 public:
 	ASilentWatcherCharacter();
+	virtual void Tick(float DeltaTime) override;
+	virtual void BeginPlay() override;
 
 protected:
 	void MoveInput(const FInputActionValue& Value);
-
 	void LookInput(const FInputActionValue& Value);
-
 	UFUNCTION(BlueprintCallable, Category="Input")
 	virtual void DoAim(float Yaw, float Pitch);
-
 	UFUNCTION(BlueprintCallable, Category="Input")
 	virtual void DoMove(float Right, float Forward);
-
 	UFUNCTION(BlueprintCallable, Category="Input")
 	virtual void DoJumpStart();
-
 	UFUNCTION(BlueprintCallable, Category="Input")
 	virtual void DoJumpEnd();
-
-
-
-
 	void ToggleFlashlight();
-
 	void StartSprint();
-
 	void StopSprint();
 	void Interact();
+	UFUNCTION(BlueprintCallable, Category = "Flashlight")
+	void ReloadFlashlight();
 
 protected:
 	virtual void SetupPlayerInputComponent(UInputComponent* InputComponent) override;

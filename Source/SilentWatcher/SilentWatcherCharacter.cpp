@@ -10,6 +10,7 @@
 #include "Interactable.h"
 #include "InventoryComponent.h"
 #include "Components/SpotLightComponent.h"
+#include "Components/LightComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
@@ -52,9 +53,45 @@ ASilentWatcherCharacter::ASilentWatcherCharacter()
 	Flashlight->SetVisibility(false);
 	Flashlight->Intensity = 20000.f;
 	Flashlight->AttenuationRadius = 3000.f;
-	FlashlightComponent =CreateDefaultSubobject<UFlashlightComponent>(TEXT("FlashlightComponent"));
+	FlashlightComponent = CreateDefaultSubobject<UFlashlightComponent>(TEXT("FlashlightComponent"));
 	Inventory = CreateDefaultSubobject<UInventoryComponent>("Inventory");
 
+	CurrentBatteryLife = MaxBatteryLife;
+	bIsFlashlightOn = false;
+}
+void ASilentWatcherCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (Inventory)
+	{
+		Inventory->AddItem("Battery", 2);
+		UE_LOG(LogTemp, Warning, TEXT("Test Batteries Added"));
+	}
+}
+
+
+void ASilentWatcherCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	GEngine->AddOnScreenDebugMessage(
+	1,
+	0.f,
+	FColor::Green,
+	FString::Printf(TEXT("Battery: %.1f"), CurrentBatteryLife)
+);
+
+
+	if (bIsFlashlightOn && CurrentBatteryLife > 0)
+	{
+		CurrentBatteryLife -= BatteryDrainRate * DeltaTime;
+
+		if (CurrentBatteryLife <= 0)
+		{
+			CurrentBatteryLife = 0;
+			ToggleFlashlight();
+		}
+	}
 }
 
 void ASilentWatcherCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -96,6 +133,14 @@ void ASilentWatcherCharacter::SetupPlayerInputComponent(UInputComponent* PlayerI
 			ETriggerEvent::Started,
 			this,
 			&ASilentWatcherCharacter::Interact
+		);
+
+
+		EnhancedInputComponent->BindAction(
+			ReloadAction,
+			ETriggerEvent::Started,
+			this,
+			&ASilentWatcherCharacter::ReloadFlashlight
 		);
 	}
 	else
@@ -159,20 +204,21 @@ void ASilentWatcherCharacter::StopSprint()
 {
 	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 }
+
 void ASilentWatcherCharacter::Interact()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Interact Pressed"));
 
 	FHitResult Hit;
 
-	const FVector Start =FirstPersonCameraComponent->GetComponentLocation();
+	const FVector Start = FirstPersonCameraComponent->GetComponentLocation();
 
-	const FVector End =Start +FirstPersonCameraComponent->GetForwardVector() * 300.f;
+	const FVector End = Start + FirstPersonCameraComponent->GetForwardVector() * 300.f;
 
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(this);
 
-	const bool bHit = GetWorld()->LineTraceSingleByChannel(Hit,Start,End,ECC_Visibility,QueryParams);
+	const bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, QueryParams);
 
 	// DrawDebugLine(GetWorld(),Start,End,bHit ? FColor::Green : FColor::Red,false,2.f,0,2.f);
 
@@ -189,27 +235,46 @@ void ASilentWatcherCharacter::Interact()
 		return;
 	}
 
-	UE_LOG(LogTemp,Warning,TEXT("Hit Actor: %s"),*HitActor->GetName());
+	UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s"), *HitActor->GetName());
 
-	IInteractable* Interactable =Cast<IInteractable>(HitActor);
+	IInteractable* Interactable = Cast<IInteractable>(HitActor);
 
 	if (!Interactable)
 	{
-		UE_LOG(LogTemp,Warning,TEXT("%s is not Interactable"),*HitActor->GetName());
+		UE_LOG(LogTemp, Warning, TEXT("%s is not Interactable"), *HitActor->GetName());
 
 		return;
 	}
 
 	if (HitActor->Implements<UInteractable>())
 	{
-		IInteractable::Execute_Interact(HitActor,this);
+		IInteractable::Execute_Interact(HitActor, this);
 	}
-
 }
+
+void ASilentWatcherCharacter::ReloadFlashlight()
+{
+	if (Inventory && Inventory->ConsumeItem("Battery", 1))
+	{
+		CurrentBatteryLife = MaxBatteryLife;
+
+		UE_LOG(LogTemp, Warning, TEXT("Flashlight Reloaded!"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No Battery in Inventory!"));
+	}
+}
+
+
 void ASilentWatcherCharacter::ToggleFlashlight()
 {
+	if (CurrentBatteryLife <= 0 && !bIsFlashlightOn)
+		return;
+
 	if (FlashlightComponent)
 	{
 		FlashlightComponent->ToggleFlashlight();
+		bIsFlashlightOn = FlashlightComponent->IsEnabled();
 	}
 }
