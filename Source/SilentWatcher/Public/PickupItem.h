@@ -5,28 +5,29 @@
 #include "Interactable.h"
 #include "PickupItem.generated.h"
 
+class USceneComponent;
+class UStaticMeshComponent;
+
 UCLASS()
 class SILENTWATCHER_API APickupItem : public AActor, public IInteractable
 {
 	GENERATED_BODY()
 	
-public:	
+public:
 	APickupItem();
 
 protected:
 	virtual void BeginPlay() override;
 
-public:	
-	virtual void Tick(float DeltaTime) override;
-	UPROPERTY(VisibleAnywhere)
+public:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USceneComponent* Root;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components")
 	UStaticMeshComponent* ItemMesh;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pickup Properties")
 	FName ItemID;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pickup Properties", meta = (ClampMin = "1"))
+	int32 Quantity;
 
 	virtual void Interact_Implementation(AActor* Interactor) override;
-
 };

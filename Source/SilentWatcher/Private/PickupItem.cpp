@@ -1,17 +1,20 @@
 #include "PickupItem.h"
-
 #include "SilentWatcherCharacter.h"
 #include "InventoryComponent.h"
-
+#include "Components/StaticMeshComponent.h"
+#include "Components/SceneComponent.h"
 
 APickupItem::APickupItem()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
-	Root = CreateDefaultSubobject<USceneComponent>("Root");
+
+	Quantity = 1;
+
+	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	SetRootComponent(Root);
 
-	ItemMesh = CreateDefaultSubobject<UStaticMeshComponent>("ItemMesh");
+	ItemMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh"));
 	ItemMesh->SetupAttachment(Root);
 }
 
@@ -20,22 +23,16 @@ void APickupItem::BeginPlay()
 	Super::BeginPlay();
 }
 
-void APickupItem::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-}
-
 void APickupItem::Interact_Implementation(AActor* Interactor)
 {
-	AActor* Player = GetWorld()->GetFirstPlayerController()->GetPawn();
-
-	if (ASilentWatcherCharacter* Character = Cast<ASilentWatcherCharacter>(Player))
+	if (ASilentWatcherCharacter* Character = Cast<ASilentWatcherCharacter>(Interactor))
 	{
 		if (Character->Inventory)
 		{
-			Character->Inventory->AddItem(ItemID, 1);
+			Character->Inventory->AddItem(ItemID, Quantity);
+			UE_LOG(LogTemp, Warning, TEXT("Picked up %d of %s"), Quantity, *ItemID.ToString());
+
+			Destroy();
 		}
 	}
-
-	Destroy();
 }

@@ -9,6 +9,7 @@
 #include "DrawDebugHelpers.h"
 #include "Interactable.h"
 #include "InventoryComponent.h"
+#include "Blueprint/UserWidget.h"
 #include "Components/SpotLightComponent.h"
 #include "Components/LightComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -59,37 +60,66 @@ ASilentWatcherCharacter::ASilentWatcherCharacter()
 	CurrentBatteryLife = MaxBatteryLife;
 	bIsFlashlightOn = false;
 }
+
 void ASilentWatcherCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (Flashlight)
+	{
+		DefaultFlashlightIntensity=Flashlight->Intensity;
+	}
 
 	if (Inventory)
 	{
 		Inventory->AddItem("Battery", 2);
 		UE_LOG(LogTemp, Warning, TEXT("Test Batteries Added"));
 	}
-}
 
+	if (PlayerHUDClass)
+	{
+		PlayerHUD = CreateWidget<UUserWidget>(GetWorld(), PlayerHUDClass);
+		if (PlayerHUD)
+		{
+			PlayerHUD->AddToViewport();
+		}
+	}
+
+}
 
 void ASilentWatcherCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	GEngine->AddOnScreenDebugMessage(
-	1,
-	0.f,
-	FColor::Green,
-	FString::Printf(TEXT("Battery: %.1f"), CurrentBatteryLife)
-);
 
-
-	if (bIsFlashlightOn && CurrentBatteryLife > 0)
+	if (bIsFlashlightOn && Flashlight)
 	{
 		CurrentBatteryLife -= BatteryDrainRate * DeltaTime;
 
+		float BatteryPercent = CurrentBatteryLife / MaxBatteryLife;
+
+		if (BatteryPercent <= FlickerThreshold)
+		{
+			float FlickerChance = FMath::FRand(); 
+            
+			if (FlickerChance > 0.8f) 
+			{
+				float RandomIntensity = FMath::FRandRange(0.2f, 1.0f);
+				Flashlight->SetIntensity(DefaultFlashlightIntensity * RandomIntensity);
+			}
+			else
+			{
+				Flashlight->SetIntensity(DefaultFlashlightIntensity);
+			}
+		}
+		else
+		{
+			Flashlight->SetIntensity(DefaultFlashlightIntensity);
+		}
+
 		if (CurrentBatteryLife <= 0)
 		{
+			ToggleFlashlight(); 
 			CurrentBatteryLife = 0;
-			ToggleFlashlight();
 		}
 	}
 }
@@ -150,6 +180,15 @@ void ASilentWatcherCharacter::SetupPlayerInputComponent(UInputComponent* PlayerI
 			       "'%s' Failed to find an Enhanced Input Component! This template is built to use the Enhanced Input system. If you intend to use the legacy system, then you will need to update this C++ file."
 		       ), *GetNameSafe(this));
 	}
+}
+
+float ASilentWatcherCharacter::GetBatteryPercent() const
+{
+	if (MaxBatteryLife <= 0)
+	{
+		return 0.f;
+	}
+	return CurrentBatteryLife / MaxBatteryLife;
 }
 
 
@@ -254,10 +293,23 @@ void ASilentWatcherCharacter::Interact()
 
 void ASilentWatcherCharacter::ReloadFlashlight()
 {
-	if (Inventory && Inventory->ConsumeItem("Battery", 1))
+	static const FName BatteryItemID(TEXT("Battery"));
+
+	if (!Inventory)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Inventory is null!"));
+		return;
+	}
+
+	if (CurrentBatteryLife >= MaxBatteryLife)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Battery is already full!"));
+		return;
+	}
+
+	if (Inventory->ConsumeItem(BatteryItemID, 1))
 	{
 		CurrentBatteryLife = MaxBatteryLife;
-
 		UE_LOG(LogTemp, Warning, TEXT("Flashlight Reloaded!"));
 	}
 	else

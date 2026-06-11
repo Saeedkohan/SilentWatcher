@@ -24,46 +24,46 @@ class ASilentWatcherCharacter : public ACharacter
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	USkeletalMeshComponent* FirstPersonMesh;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FirstPersonCameraComponent;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category ="Input")
 	UInputAction* JumpAction;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category ="Input")
 	UInputAction* MoveAction;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category ="Input")
 	class UInputAction* LookAction;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category ="Input")
 	class UInputAction* MouseLookAction;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category ="Input")
 	UInputAction* SprintAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
+	UInputAction* FlashlightAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
+	UInputAction* InteractAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
+	UInputAction* ReloadAction;
 
 	UPROPERTY(VisibleAnywhere)
 	USpotLightComponent* Flashlight;
 	UPROPERTY(VisibleAnywhere)
 	UFlashlightComponent* FlashlightComponent;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
-	UInputAction* FlashlightAction;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
-	UInputAction* InteractAction;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
-	UInputAction* ReloadAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="FlashLight")
 	float MaxBatteryLife = 100.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="FlashLight")
 	float CurrentBatteryLife;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="FlashLight")
-	float BatteryDrainRate = 30.f;
+	float BatteryDrainRate = 5.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="FlashLight")
 	bool bIsFlashlightOn = false;
+	UPROPERTY(EditAnywhere, Category="FlashLight")
+	float FlickerThreshold = 0.2f;
+	float DefaultFlashlightIntensity;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
+	TSubclassOf<UUserWidget> PlayerHUDClass;
+	UUserWidget* PlayerHUD;
 
 public:
 	ASilentWatcherCharacter();
@@ -96,6 +96,9 @@ public:
 	UInventoryComponent* Inventory;
 	USkeletalMeshComponent* GetFirstPersonMesh() const { return FirstPersonMesh; }
 	UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
+
+	UFUNCTION(BlueprintPure, Category="Flashlight")
+	float GetBatteryPercent() const;
 
 private:
 	UPROPERTY(EditAnywhere, Category="Movement")
