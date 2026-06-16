@@ -9,7 +9,9 @@
 #include "DrawDebugHelpers.h"
 #include "Interactable.h"
 #include "InventoryComponent.h"
+#include "WatcherEnemyCharacter.h"
 #include "Blueprint/UserWidget.h"
+#include "Components/SceneComponent.h"
 #include "Components/SpotLightComponent.h"
 #include "Components/LightComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -67,7 +69,7 @@ void ASilentWatcherCharacter::BeginPlay()
 
 	if (Flashlight)
 	{
-		DefaultFlashlightIntensity=Flashlight->Intensity;
+		DefaultFlashlightIntensity = Flashlight->Intensity;
 	}
 
 	if (Inventory)
@@ -84,7 +86,6 @@ void ASilentWatcherCharacter::BeginPlay()
 			PlayerHUD->AddToViewport();
 		}
 	}
-
 }
 
 void ASilentWatcherCharacter::Tick(float DeltaTime)
@@ -99,9 +100,9 @@ void ASilentWatcherCharacter::Tick(float DeltaTime)
 
 		if (BatteryPercent <= FlickerThreshold)
 		{
-			float FlickerChance = FMath::FRand(); 
-            
-			if (FlickerChance > 0.8f) 
+			float FlickerChance = FMath::FRand();
+
+			if (FlickerChance > 0.8f)
 			{
 				float RandomIntensity = FMath::FRandRange(0.2f, 1.0f);
 				Flashlight->SetIntensity(DefaultFlashlightIntensity * RandomIntensity);
@@ -118,10 +119,56 @@ void ASilentWatcherCharacter::Tick(float DeltaTime)
 
 		if (CurrentBatteryLife <= 0)
 		{
-			ToggleFlashlight(); 
+			ToggleFlashlight();
 			CurrentBatteryLife = 0;
 		}
 	}
+
+	if (!bIsFlashlightOn)
+	{
+		if (LastFlashedEnemy)
+		{
+			LastFlashedEnemy->SetIsBeingFlashed(false);
+			LastFlashedEnemy = nullptr;
+		}
+		return;
+	}
+
+	FVector Start = FirstPersonCameraComponent->GetComponentLocation();
+	FVector End = Start + (FirstPersonCameraComponent->GetForwardVector() * 2000.f);
+
+	FHitResult Hit;
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);
+
+	bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, Params);
+
+	if (bHit)
+	{
+		AWatcherEnemyCharacter* Enemy = Cast<AWatcherEnemyCharacter>(Hit.GetActor());
+
+		if (Enemy)
+		{
+			if (LastFlashedEnemy && LastFlashedEnemy != Enemy)
+			{
+				LastFlashedEnemy->SetIsBeingFlashed(false);
+			}
+
+			Enemy->SetIsBeingFlashed(true);
+			LastFlashedEnemy = Enemy;
+			return;
+		}
+	}
+
+	if (LastFlashedEnemy)
+	{
+		LastFlashedEnemy->SetIsBeingFlashed(false);
+		LastFlashedEnemy = nullptr;
+	}
+
+	DrawDebugLine(GetWorld(), Start, End, FColor::Yellow, false, 0.1f, 0, 1.f);
+	DrawDebugSphere(GetWorld(), Hit.ImpactPoint, 20.f, 12, FColor::Red, false, 0.1f);
+
 }
 
 void ASilentWatcherCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

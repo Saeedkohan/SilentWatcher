@@ -16,7 +16,7 @@ class UInventoryComponent;
 struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
-
+class AWatcherEnemyCharacter; 
 UCLASS(abstract)
 class ASilentWatcherCharacter : public ACharacter
 {
@@ -105,4 +105,6 @@ private:
 	float WalkSpeed = 500.f;
 	UPROPERTY(EditAnywhere, Category="Movement")
 	float SprintSpeed = 900.f;
+	AWatcherEnemyCharacter* LastFlashedEnemy = nullptr;
+
 };
